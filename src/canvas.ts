@@ -13,6 +13,7 @@ export class Renderer {
   private context: WebGLRenderingContext;
   private console: HTMLElement;
   private sourceImage: HTMLImageElement;
+  private sourceName: string;
   private renderedCanvas: HTMLCanvasElement;
   private power: number;
   private program: ShaderProgram;
@@ -25,7 +26,10 @@ export class Renderer {
   constructor(parent: HTMLElement) {
     this.parent = parent;
     this.canvas = document.querySelector('#webgl');
-    this.context = this.canvas.getContext('webgl2');
+    this.context = this.canvas.getContext('webgl2', {
+      antialias: false,
+      preserveDrawingBuffer: true,
+    });
     this.console = document.querySelector('#console');
     this.power = 0;
 
@@ -36,6 +40,23 @@ export class Renderer {
     this.eventSetting();
     this.paneSetting();
     this.init();
+  }
+  export(level?: number): void {
+    if (this.sourceImage == null) {return;}
+    if (level != null) {
+      this.uTextureBias = Math.min(level, SQUARE_MAX_POWER);
+      this.render();
+    }
+    const wait = level != null ? level * 100 : 1;
+    setTimeout(() => {
+      const url = this.canvas.toDataURL();
+      const anchor = document.createElement('a');
+      document.body.appendChild(anchor);
+      anchor.download = `${this.sourceName}.png`;
+      anchor.href = url;
+      anchor.click();
+      document.body.removeChild(anchor);
+    }, wait);
   }
   eventSetting(): void {
     const body = document.body;
@@ -50,6 +71,13 @@ export class Renderer {
       }
       await this.fromFile(files[0]);
       this.update();
+    }, false);
+    window.addEventListener('keydown', (keyboardEvent) => {
+      switch (keyboardEvent.key) {
+        case 'e':
+          this.export();
+          break;
+      }
     }, false);
   }
   paneSetting(): void {
@@ -219,6 +247,7 @@ export class Renderer {
         this.sourceImage.src = url;
       }, false);
       reader.readAsDataURL(file);
+      this.sourceName = file.name;
     });
   }
 
