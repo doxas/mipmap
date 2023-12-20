@@ -19,6 +19,7 @@ export class Renderer {
   private texture: WebGLTexture;
 
   private previewScale: number;
+  private uGeometryScale: number;
   private uTextureBias: number;
 
   constructor(parent: HTMLElement) {
@@ -29,6 +30,7 @@ export class Renderer {
     this.power = 0;
 
     this.previewScale = 0.5;
+    this.uGeometryScale = 1.0;
     this.uTextureBias = 0.0;
 
     this.eventSetting();
@@ -56,14 +58,21 @@ export class Renderer {
     const generalFolder = pane.addFolder({title: 'general'});
     const scale = generalFolder.addBinding({'scale': this.previewScale}, 'scale', {
       min: 0.5,
-      max: 4.0,
+      max: 5.0,
     }).on('change', (v) => {
       this.previewScale = v.value;
       this.transform();
     });
+    const geometryScale = generalFolder.addBinding({'geometry': this.uGeometryScale}, 'geometry', {
+      min: 0.001,
+      max: 1.0,
+    }).on('change', (v) => {
+      this.uGeometryScale = v.value;
+      this.render();
+    });
     const bias = generalFolder.addBinding({'bias': this.uTextureBias}, 'bias', {
-      min: -100.0,
-      max: 100.0,
+      min: -1.0,
+      max: SQUARE_MAX_POWER,
     }).on('change', (v) => {
       this.uTextureBias = v.value;
       this.render();
@@ -100,10 +109,12 @@ export class Renderer {
         2,
       ],
       uniform: [
+        'geometryScale',
         'textureUnit',
         'textureBias',
       ],
       type: [
+        'uniform1f',
         'uniform1i',
         'uniform1f',
       ],
@@ -124,17 +135,19 @@ export class Renderer {
     }
     this.texture = WebGLUtility.createTexture(gl, this.renderedCanvas);
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST_MIPMAP_NEAREST);
 
-    // generate mipmap
-    const c = document.createElement('canvas');
-    const ctx = c.getContext('2d');
-    for (let i = 1; i <= this.power; ++i) {
-      const size = this.renderedCanvas.width / Math.pow(2, i);
-      c.width = c.height = size;
-      console.log(size);
-      ctx.drawImage(this.renderedCanvas, 0, 0, size, size);
-      gl.texImage2D(gl.TEXTURE_2D, i, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
-    }
+    // generate mipmap by selfy
+    // const c = document.createElement('canvas');
+    // const ctx = c.getContext('2d');
+    // for (let i = 1; i <= this.power; ++i) {
+    //   const size = this.renderedCanvas.width / Math.pow(2, i);
+    //   c.width = c.height = size;
+    //   console.log(size);
+    //   ctx.drawImage(this.renderedCanvas, 0, 0, size, size);
+    //   gl.texImage2D(gl.TEXTURE_2D, i, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
+    // }
 
     this.resize();
     this.render();
@@ -152,6 +165,7 @@ export class Renderer {
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     gl.clear(gl.COLOR_BUFFER_BIT);
     this.program.setUniform([
+      this.uGeometryScale,
       0,
       this.uTextureBias,
     ]);
