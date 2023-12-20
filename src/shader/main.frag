@@ -1,9 +1,11 @@
+#version 300 es
+
 precision highp float;
-uniform vec2 mouse;
-uniform vec2 resolution;
 uniform sampler2D textureUnit;
-varying vec2 vTexCoord;
+uniform float textureBias;
+in vec2 vTexCoord;
+out vec4 color;
+
 void main() {
-  vec4 color = texture2D(textureUnit, vTexCoord);
-  gl_FragColor = color;
+  color = texture(textureUnit, vTexCoord, textureBias);
 }
