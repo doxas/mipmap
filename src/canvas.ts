@@ -47,16 +47,15 @@ export class Renderer {
       this.uTextureBias = Math.min(level, SQUARE_MAX_POWER);
       this.render();
     }
-    const wait = level != null ? level * 100 : 1;
-    setTimeout(() => {
-      const url = this.canvas.toDataURL();
-      const anchor = document.createElement('a');
-      document.body.appendChild(anchor);
-      anchor.download = `${this.sourceName}.png`;
-      anchor.href = url;
-      anchor.click();
-      document.body.removeChild(anchor);
-    }, wait);
+    const label = level != null ? '-' + Renderer.zeroPadding(level, 2) : '';
+    const url = this.canvas.toDataURL();
+    const anchor = document.createElement('a');
+    document.body.appendChild(anchor);
+    const name = this.sourceName.replace(/\.(JPG|JPEG|PNG)/ig, '');
+    anchor.download = `${name}${label}.png`;
+    anchor.href = url;
+    anchor.click();
+    document.body.removeChild(anchor);
   }
   eventSetting(): void {
     const body = document.body;
@@ -99,12 +98,17 @@ export class Renderer {
       this.render();
     });
     const bias = generalFolder.addBinding({'bias': this.uTextureBias}, 'bias', {
-      min: -1.0,
+      min: 0,
       max: SQUARE_MAX_POWER,
+      step: 1,
     }).on('change', (v) => {
       this.uTextureBias = v.value;
       this.render();
     });
+    const exportFolder = pane.addFolder({title: 'export'});
+    for (let i = 0; i <= SQUARE_MAX_POWER; ++i) {
+      exportFolder.addButton({title: `lv - ${i}`}).on('click', () => {this.export(i);});
+    }
   }
   transform(): void {
     const s = this.canvas.height;
@@ -257,5 +261,8 @@ export class Renderer {
     } else {
       return (v & (v - 1)) === 0;
     }
+  }
+  static zeroPadding(v: number, u: number): string {
+    return (new Array(u).join('0') + v).slice(-u);
   }
 }
